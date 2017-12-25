@@ -4,7 +4,7 @@ android {
     compileSdkVersion 27
     defaultConfig {
         applicationId "com.screenmaker.screenmaker"
-        minSdkVersion 19
+        minSdkVersion 23
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
@@ -38,7 +38,20 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:27.0.1'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+
+    //test
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+
+    //room
+    compile "android.arch.persistence.room:runtime:1.0.0"
+    compile "android.arch.persistence.room:rxjava2:1.0.0"
+    annotationProcessor "android.arch.persistence.room:compiler:1.0.0"
+
+    //rx
+    compile "io.reactivex.rxjava2:rxandroid:2.0.1"
+    compile "io.reactivex.rxjava2:rxjava:2.0.1"
+
+    compile 'com.github.cirorizzo:jealoussky:0.3'
 }
