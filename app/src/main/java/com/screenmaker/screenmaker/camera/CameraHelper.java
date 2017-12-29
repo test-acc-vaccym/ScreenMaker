@@ -27,6 +27,8 @@ import java.util.List;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
 
 public class CameraHelper {
 
@@ -72,8 +74,86 @@ public class CameraHelper {
     }
 
     @SuppressLint("MissingPermission")
-    public void openCamera() throws CameraAccessException {
-        mCameraManager.openCamera(cameraID, mCameraCallback, null);
+    public Flowable<byte[]> openCamera(int photoQuantity) {
+        final int[] savedPhoto = {0};
+        return Flowable.create(emitter -> mCameraManager.openCamera(cameraID, new CameraDevice.StateCallback() {
+            @Override
+            public void onOpened(@NonNull CameraDevice camera) {
+                mCameraDevice = camera;
+                Log.i(LOG_TAG, "Open camera  with id:" + mCameraDevice.getId());
+                SurfaceTexture texture = mTextureView.getSurfaceTexture();
+                texture.setDefaultBufferSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+                Surface surface = new Surface(texture);
+
+                mImageReader = ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                        ImageFormat.YUV_420_888, 1);
+                mImageReader.setOnImageAvailableListener(reader -> {
+                    Log.i(LOG_TAG, "creating photo reader " + reader);
+                    Image image = null;
+                    while ((image = reader.acquireNextImage()) != null){
+                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        byte[] bytes = new byte[buffer.capacity()];
+                        emitter.onNext(bytes);
+                        image.close();
+
+                        Log.e(LOG_TAG, "bytes " + bytes);
+                        Log.e(LOG_TAG, "bytes " + bytes.length);
+                        if(savedPhoto[0] == photoQuantity){
+                            emitter.onComplete();
+                        } else {
+                            savedPhoto[0]++;
+                        }
+                    }
+                }, null);
+
+                try {
+                    mPreviewRequestBuilder
+                            = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+                    mPreviewRequestBuilder.addTarget(surface);
+
+                    mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()), new CameraCaptureSession.StateCallback() {
+
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession session) {
+                            if (null == mCameraDevice) {
+                                return;
+                            }
+                            mCameraCaptureSession = session;
+
+                            try {
+                                mPreviewRequest = mPreviewRequestBuilder.build();
+                                mCameraCaptureSession.setRepeatingRequest(mPreviewRequest,
+                                        null, null);
+                                takePicture(10);
+                            } catch (CameraAccessException e) {
+                                emitter.onError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                            emitter.onError(new CameraAccessException(CameraAccessException.CAMERA_ERROR, "configure failed"));
+                        }
+
+                    }, null);
+                } catch (CameraAccessException e) {
+                    emitter.onError(e);
+                }
+            }
+
+            @Override
+            public void onDisconnected(@NonNull CameraDevice camera) {
+                mCameraDevice.close();
+                mCameraDevice = null;
+                Log.i(LOG_TAG, "disconnect camera with id:" + mCameraDevice.getId());
+                emitter.onComplete();
+            }
+
+            @Override
+            public void onError(@NonNull CameraDevice camera, int error) {
+                emitter.onError(new CameraAccessException(error));
+            }
+        }, null), BackpressureStrategy.BUFFER);
     }
 
     public void closeCamera() {
@@ -166,7 +246,7 @@ public class CameraHelper {
                     try {
                         takePicture(captureBuilder, photoQuantity - 1);
                     } catch (CameraAccessException e) {
-                        e.printStackTrace();
+                        return;
                     }
                 }
             }
