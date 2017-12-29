@@ -9,16 +9,24 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.media.Image;
 import android.media.ImageReader;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
 
 public class CameraHelper {
 
@@ -35,14 +43,14 @@ public class CameraHelper {
 
     private String cameraID;
     private TextureView mTextureView;
-    private int photoQuantity;
+    private CaptureRequest.Builder mPreviewRequestBuilder;
+    private CaptureRequest mPreviewRequest;
 
     public CameraHelper(Context context) {
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
     }
 
-    public void init(int cameraId, int photoQuantity) throws CameraAccessException {
-        this.photoQuantity = photoQuantity;
+    public void init(int cameraId) throws CameraAccessException {
         String[] cameraList = mCameraManager.getCameraIdList();
         CameraCharacteristics cc = null;
         for (String cameraID : cameraList) {
@@ -54,7 +62,7 @@ public class CameraHelper {
             }
         }
 
-        if(this.cameraID == null){
+        if (this.cameraID == null) {
             throw new CameraAccessException(CameraAccessException.CAMERA_DISABLED);
         }
     }
@@ -87,24 +95,35 @@ public class CameraHelper {
         }
     }
 
-    private void createCameraPreviewSession(int photoQuantity) {
+    private void createCameraPreviewSession() {
+
         SurfaceTexture texture = mTextureView.getSurfaceTexture();
         texture.setDefaultBufferSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
         Surface surface = new Surface(texture);
 
-        mImageReader = createImageReader(photoQuantity);
+        mImageReader = ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                ImageFormat.YUV_420_888, 1);
+
+        mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
 
         try {
+            mPreviewRequestBuilder
+                    = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            mPreviewRequestBuilder.addTarget(surface);
+
             mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()), new CameraCaptureSession.StateCallback() {
 
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession session) {
-                    try {
-                        mCameraCaptureSession = session;
-                        mCameraCaptureSession.setRepeatingRequest(createCaptureRequest(surface, CameraDevice.TEMPLATE_PREVIEW), null, null);
+                    if (null == mCameraDevice) {
+                        return;
+                    }
+                    mCameraCaptureSession = session;
 
-                        CaptureRequest photoCaptureRequest = createCaptureRequest(mImageReader.getSurface(), CameraDevice.TEMPLATE_STILL_CAPTURE);
-                        setCaptureBurst(mCameraCaptureSession, photoCaptureRequest);
+                    try {
+                        mPreviewRequest = mPreviewRequestBuilder.build();
+                        mCameraCaptureSession.setRepeatingRequest(mPreviewRequest,
+                                null, null);
                     } catch (CameraAccessException e) {
                         e.printStackTrace();
                     }
@@ -121,45 +140,48 @@ public class CameraHelper {
         }
     }
 
-    private ImageReader createImageReader(int photoQuantity){
-        ImageReader imageReaderYUV = ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT, ImageFormat.YUV_420_888, photoQuantity);
-        imageReaderYUV.setOnImageAvailableListener(
-                mOnImageAvailableListener, null);
-        return imageReaderYUV;
+    public void takePicture(int photoQuantity) throws CameraAccessException {
+        final CaptureRequest.Builder captureBuilder =
+                mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+        captureBuilder.addTarget(mImageReader.getSurface());
+        takePicture(captureBuilder, photoQuantity);
     }
 
-    private CaptureRequest createCaptureRequest(Surface surface, int template) throws CameraAccessException {
-        CaptureRequest.Builder captureRequestBuilder = mCameraDevice.createCaptureRequest(template);
-        captureRequestBuilder.addTarget(surface);
-        return captureRequestBuilder.build();
-    }
+    private void takePicture(CaptureRequest.Builder captureBuilder, int photoQuantity) throws CameraAccessException {
 
-    private List<CaptureRequest> createCaptureList(CaptureRequest photoCaptureRequest, int photoQuantity){
-        List<CaptureRequest> captureList = new ArrayList<>();
-        for (int i = 0; i < photoQuantity; i++) {
-            captureList.add(photoCaptureRequest);
-        }
-        return captureList;
-    }
-
-    private void setCaptureBurst(CameraCaptureSession session, CaptureRequest photoCaptureRequest) throws CameraAccessException {
-        List<CaptureRequest> captureList = createCaptureList(photoCaptureRequest, photoQuantity);
-        session.captureBurst(captureList, new CameraCaptureSession.CaptureCallback() {
+        CameraCaptureSession.CaptureCallback CaptureCallback
+                = new CameraCaptureSession.CaptureCallback() {
             @Override
-            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                super.onCaptureCompleted(session, request, result);
-                Log.e(LOG_TAG, "onCaptureCompleted test");
+            public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                           @NonNull CaptureRequest request,
+                                           @NonNull TotalCaptureResult result) {
+                Log.e("myLogs", "onCaptureCompleted");
             }
-        }, null);
-    }
 
+            @Override
+            public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
+                super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
+                Log.e("myLogs", "onCaptureSequenceCompleted " + photoQuantity);
+                if (photoQuantity > 0) {
+                    try {
+                        takePicture(captureBuilder, photoQuantity - 1);
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+        };
+
+        mCameraCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
+    }
 
     private final CameraDevice.StateCallback mCameraCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
             mCameraDevice = camera;
             Log.i(LOG_TAG, "Open camera  with id:" + mCameraDevice.getId());
-            createCameraPreviewSession(photoQuantity);
+            createCameraPreviewSession();
         }
 
         @Override
@@ -178,6 +200,18 @@ public class CameraHelper {
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = reader -> {
         Log.i(LOG_TAG, "creating photo reader " + reader);
+        Image image = null;
+        while ((image = reader.acquireLatestImage()) != null){
+            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+            byte[] bytes = new byte[buffer.capacity()];
+            image.close();
+            Log.e(LOG_TAG, "bytes " + bytes);
+            Log.e(LOG_TAG, "bytes " + bytes.length);
+        }
     };
+
+
+
+
 
 }
