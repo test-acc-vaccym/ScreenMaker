@@ -3,7 +3,6 @@ package com.screenmaker.screenmaker.utils;
 
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
-import android.util.Log;
 
 import com.screenmaker.screenmaker.storage.cryptoinfo.CryptoInfo;
 
@@ -34,17 +33,12 @@ public class KeyCryptoUtils {
             InvalidKeyException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, IOException {
 
         SecretKey secretKey = getKey(alias);
-        Log.e("myLogs", "encrypt " + secretKey);
         final Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM_PCKS5);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
         byte[] initVector = cipher.getIV();
-        Log.e("myLogs", "encrypt initVector " + secretKey);
 
         byte[] cipheredData = cipher.doFinal(dataToEncrypt);
-        Log.e("myLogs", "encrypt cipheredData " + cipheredData);
-        Log.e("myLogs", "encrypt cipheredData " + cipheredData.length);
-        Log.e("myLogs", "encrypt cipheredData end");
         return new CryptoInfo(ketTitle, alias, initVector, cipheredData);
     }
 
@@ -62,10 +56,7 @@ public class KeyCryptoUtils {
 
         final GCMParameterSpec spec = new GCMParameterSpec(128, cryptoInfo.getInitializationVector());
         cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
-        byte[] bytes = cipher.doFinal(cryptoInfo.getCipheredData());
-        Log.e("myLogs", "decrypt bytes " + bytes);
-        Log.e("myLogs", "decrypt bytes " + bytes.length);
-        return bytes;
+        return cipher.doFinal(cryptoInfo.getCipheredData());
     }
 
     private static SecretKey getKey(String alias) throws NoSuchProviderException, NoSuchAlgorithmException,

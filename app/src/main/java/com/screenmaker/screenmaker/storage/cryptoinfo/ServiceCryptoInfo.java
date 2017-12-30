@@ -1,7 +1,5 @@
 package com.screenmaker.screenmaker.storage.cryptoinfo;
 
-import android.util.Log;
-
 import com.screenmaker.screenmaker.storage.DbBuilder;
 import com.screenmaker.screenmaker.utils.KeyCryptoUtils;
 
@@ -42,8 +40,9 @@ public class ServiceCryptoInfo {
         try {
             CryptoInfo cryptoInfo = KeyCryptoUtils.encrypt(keyTitle, keyToEncrypt.getBytes(), keyAlias);
             return daoCryptoInfo.insertImage(cryptoInfo);
-        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | NoSuchProviderException | InvalidKeyException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | IOException e) {
-            Log.e("myLogs", "encryptAndInsert " + e.toString());
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | NoSuchProviderException |
+                InvalidKeyException | NoSuchPaddingException | BadPaddingException |
+                IllegalBlockSizeException | IOException e) {
             return new long[]{-1};
         }
     }
@@ -52,8 +51,9 @@ public class ServiceCryptoInfo {
         CryptoInfo cryptoInfo = getCryptoInfo(keyTitle);
         try {
             return new String(KeyCryptoUtils.decrypt(cryptoInfo));
-        } catch (KeyStoreException | UnrecoverableEntryException | NoSuchAlgorithmException | IOException | CertificateException | InvalidAlgorithmParameterException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
-            e.printStackTrace();
+        } catch (KeyStoreException | UnrecoverableEntryException | NoSuchAlgorithmException | IOException |
+                CertificateException | InvalidAlgorithmParameterException | NoSuchPaddingException |
+                InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             return null;
         }
     }

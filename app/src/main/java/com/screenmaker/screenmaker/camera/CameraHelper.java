@@ -2,8 +2,6 @@ package com.screenmaker.screenmaker.camera;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -11,9 +9,7 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
@@ -23,14 +19,10 @@ import android.view.Surface;
 import android.view.TextureView;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
-import io.reactivex.FlowableEmitter;
-import io.reactivex.FlowableOnSubscribe;
 
 public class CameraHelper {
 
@@ -93,12 +85,6 @@ public class CameraHelper {
                     Log.i(LOG_TAG, "creating photo reader " + reader);
                     Image image = null;
                     while ((image = reader.acquireNextImage()) != null){
-//                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-//                        buffer.rewind();
-//                        byte[] bytes = new byte[buffer.capacity()];
-//                        emitter.onNext(bytes);
-//                        image.close();
-
                         Image.Plane[] planes = image.getPlanes();
                         ByteBuffer buffer = planes[0].getBuffer();
                         buffer.rewind();
@@ -186,51 +172,6 @@ public class CameraHelper {
         }
     }
 
-//    private void createCameraPreviewSession() {
-//
-//        SurfaceTexture texture = mTextureView.getSurfaceTexture();
-//        texture.setDefaultBufferSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-//        Surface surface = new Surface(texture);
-//
-//        mImageReader = ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT,
-//                ImageFormat.YUV_420_888, 1);
-//
-//        mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
-//
-//        try {
-//            mPreviewRequestBuilder
-//                    = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-//            mPreviewRequestBuilder.addTarget(surface);
-//
-//            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()), new CameraCaptureSession.StateCallback() {
-//
-//                @Override
-//                public void onConfigured(@NonNull CameraCaptureSession session) {
-//                    if (null == mCameraDevice) {
-//                        return;
-//                    }
-//                    mCameraCaptureSession = session;
-//
-//                    try {
-//                        mPreviewRequest = mPreviewRequestBuilder.build();
-//                        mCameraCaptureSession.setRepeatingRequest(mPreviewRequest,
-//                                null, null);
-//                    } catch (CameraAccessException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//
-//                @Override
-//                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-//
-//                }
-//
-//            }, null);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
     public void takePicture(int photoQuantity) throws CameraAccessException {
         final CaptureRequest.Builder captureBuilder =
                 mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
@@ -266,43 +207,5 @@ public class CameraHelper {
 
         mCameraCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
     }
-
-//    private final CameraDevice.StateCallback mCameraCallback = new CameraDevice.StateCallback() {
-//        @Override
-//        public void onOpened(@NonNull CameraDevice camera) {
-//            mCameraDevice = camera;
-//            Log.i(LOG_TAG, "Open camera  with id:" + mCameraDevice.getId());
-//            createCameraPreviewSession();
-//        }
-//
-//        @Override
-//        public void onDisconnected(@NonNull CameraDevice camera) {
-//            mCameraDevice.close();
-//            mCameraDevice = null;
-//            Log.i(LOG_TAG, "disconnect camera with id:" + mCameraDevice.getId());
-//        }
-//
-//        @Override
-//        public void onError(@NonNull CameraDevice camera, int error) {
-//            Log.i(LOG_TAG, "error! camera id: " + camera.getId() + " error:" + error);
-//        }
-//
-//    };
-//
-//    private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = reader -> {
-//        Log.i(LOG_TAG, "creating photo reader " + reader);
-//        Image image = null;
-//        while ((image = reader.acquireLatestImage()) != null){
-//            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-//            byte[] bytes = new byte[buffer.capacity()];
-//            image.close();
-//            Log.e(LOG_TAG, "bytes " + bytes);
-//            Log.e(LOG_TAG, "bytes " + bytes.length);
-//        }
-//    };
-
-
-
-
 
 }

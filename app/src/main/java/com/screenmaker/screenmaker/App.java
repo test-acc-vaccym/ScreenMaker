@@ -5,8 +5,8 @@ import android.app.Application;
 
 public class App extends Application {
 
-    public static final String IMAGE_ENCRYPTION_KEY_TITLE = "ImageEncyptionKeyTitle";
-    public static final String IMAGE_ENCRYPTION_ALIAS_TITLE = "ImageEncyptionAliasTitle";
+    public static final String IMAGE_ENCRYPTION_KEY_TITLE = "ImageEncryptionKeyTitle";
+    public static final String IMAGE_ENCRYPTION_ALIAS_TITLE = "ImageEncryptionAliasTitle";
 
     private static App instance;
 

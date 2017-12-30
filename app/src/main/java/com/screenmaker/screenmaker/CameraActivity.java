@@ -1,14 +1,10 @@
 package com.screenmaker.screenmaker;
 
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.TextureView;
 import android.widget.Toast;
 
@@ -17,8 +13,6 @@ import com.screenmaker.screenmaker.storage.cryptoinfo.ServiceCryptoInfo;
 import com.screenmaker.screenmaker.storage.images.ImageEntry;
 import com.screenmaker.screenmaker.storage.images.ServiceImageEntry;
 import com.screenmaker.screenmaker.utils.ImageCryptoUtils;
-
-import java.util.List;
 
 import io.reactivex.Completable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -45,7 +39,6 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
         .subscribe(new DisposableCompletableObserver() {
             @Override
             public void onComplete() {
-                Log.e("myLogs", "CA onCreate onComplete");
                 TextureView mTextureView = findViewById(R.id.textureView_camera);
                 mTextureView.setSurfaceTextureListener(CameraActivity.this);
                 cameraHelper = new CameraHelper(CameraActivity.this);
@@ -75,49 +68,31 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
-        Log.e("myLogs", "CA onSurfaceTextureAvailable ");
+        ServiceImageEntry serviceImageEntry = new ServiceImageEntry();
+        ImageCryptoUtils cryptoUtils = new ImageCryptoUtils(imageKey, imageAlias);
         cameraHelper.openCamera(PHOTO_QUANTITY)
                 .subscribeOn(AndroidSchedulers.mainThread())
                 .observeOn(Schedulers.io())
                 .map(bytes -> {
-                    Bitmap bitmap1 = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                    Log.e("myLogs", "bitmap1 " + bitmap1);
-
-
-                    Log.e("myLogs", "apply " + bytes);
-                    ServiceImageEntry serviceImageEntry = new ServiceImageEntry();
-                    ImageCryptoUtils cryptoUtils = new ImageCryptoUtils(imageKey, imageAlias);
                     byte[] encr = cryptoUtils.encryptImage(bytes);
-                    byte[] decryptImage = cryptoUtils.decryptImage(encr);
-                    Bitmap bitmap2 = BitmapFactory.decodeByteArray(decryptImage, 0, decryptImage.length);
-                    Log.e("myLogs", "bitmap2 " + bitmap2);
-
-
-
-                    long[] longs = serviceImageEntry.insertImage(new ImageEntry(encr));
-                    Log.e("myLogs", "longs " + longs[0]);
-                    List<ImageEntry> entries = serviceImageEntry.getAllImages();
-                    Log.e("myLogs", "longs " + entries.size());
+                    serviceImageEntry.insertImage(new ImageEntry(encr));
                     return bytes;
                 })
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new DisposableSubscriber<byte[]>() {
                     @Override
                     public void onNext(byte[] bytes) {
-                        Log.e("myLogs", "CA onNext " + bytes);
                         Toast.makeText(CameraActivity.this, "Image saved", Toast.LENGTH_LONG).show();
                     }
 
                     @Override
                     public void onError(Throwable t) {
-                        Log.e("myLogs", "CA onError" + t.toString());
                         Toast.makeText(CameraActivity.this, t.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                         finishActivityWithRes(RESULT_CANCELED);
                     }
 
                     @Override
                     public void onComplete() {
-                        Log.e("myLogs", "CA onComplete ");
                         Toast.makeText(CameraActivity.this, "Image capturing complete", Toast.LENGTH_LONG).show();
                         finishActivityWithRes(RESULT_OK);
                     }
@@ -149,14 +124,11 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
             ServiceCryptoInfo serviceCryptoInfo = new ServiceCryptoInfo();
             imageKey = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_KEY_TITLE);
             imageAlias = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_ALIAS_TITLE);
-            Log.e("myLogs", "CA imageKey " + imageKey);
-            Log.e("myLogs", "CA imageAlias " + imageAlias);
             if(imageKey == null || imageKey.equals("") ||
                     imageAlias == null || imageKey.equals("")){
                 e.onError(new InstantiationException("Failed to instantiate the photo camera"));
             } else {
                 e.onComplete();
-                Log.e("myLogs", "CA initKeys onComplete");
             }
         });
     }

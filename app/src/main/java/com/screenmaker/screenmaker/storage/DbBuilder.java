@@ -2,7 +2,6 @@ package com.screenmaker.screenmaker.storage;
 
 
 import android.arch.persistence.room.Room;
-
 import com.screenmaker.screenmaker.App;
 
 public class DbBuilder {
