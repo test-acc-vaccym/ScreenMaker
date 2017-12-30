@@ -7,11 +7,11 @@ import com.screenmaker.screenmaker.App;
 
 public class DbBuilder {
 
-    private static final String TITLE_DB = "imagestorage";
+    private static final String DB_TITLE = "imagedatabase";
 
-    public static DbInstance getDbInstance(){
+    public static DbInstance getDb(){
         return Room.databaseBuilder(App.getAppContext(),
-                DbInstance.class, TITLE_DB).build();
+                DbInstance.class, DB_TITLE).build();
     }
 
 }

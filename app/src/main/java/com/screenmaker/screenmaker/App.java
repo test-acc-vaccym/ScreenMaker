@@ -2,11 +2,11 @@ package com.screenmaker.screenmaker;
 
 import android.app.Application;
 
-/**
- * Created by user on 13.12.17.
- */
 
 public class App extends Application {
+
+    public static final String IMAGE_ENCRYPTION_KEY_TITLE = "ImageEncyptionKeyTitle";
+    public static final String IMAGE_ENCRYPTION_ALIAS_TITLE = "ImageEncyptionAliasTitle";
 
     private static App instance;
 
@@ -17,4 +17,5 @@ public class App extends Application {
     public static App getAppContext(){
         return instance;
     }
+
 }

@@ -1,6 +1,8 @@
 package com.screenmaker.screenmaker;
 
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
@@ -78,10 +80,20 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
                 .subscribeOn(AndroidSchedulers.mainThread())
                 .observeOn(Schedulers.io())
                 .map(bytes -> {
+                    Bitmap bitmap1 = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    Log.e("myLogs", "bitmap1 " + bitmap1);
+
+
                     Log.e("myLogs", "apply " + bytes);
                     ServiceImageEntry serviceImageEntry = new ServiceImageEntry();
                     ImageCryptoUtils cryptoUtils = new ImageCryptoUtils(imageKey, imageAlias);
                     byte[] encr = cryptoUtils.encryptImage(bytes);
+                    byte[] decryptImage = cryptoUtils.decryptImage(encr);
+                    Bitmap bitmap2 = BitmapFactory.decodeByteArray(decryptImage, 0, decryptImage.length);
+                    Log.e("myLogs", "bitmap2 " + bitmap2);
+
+
+
                     long[] longs = serviceImageEntry.insertImage(new ImageEntry(encr));
                     Log.e("myLogs", "longs " + longs[0]);
                     List<ImageEntry> entries = serviceImageEntry.getAllImages();

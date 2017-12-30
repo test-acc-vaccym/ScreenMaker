@@ -2,6 +2,8 @@ package com.screenmaker.screenmaker.camera;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -86,18 +88,27 @@ public class CameraHelper {
                 Surface surface = new Surface(texture);
 
                 mImageReader = ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                        ImageFormat.YUV_420_888, 1);
+                        ImageFormat.JPEG, 1);
                 mImageReader.setOnImageAvailableListener(reader -> {
                     Log.i(LOG_TAG, "creating photo reader " + reader);
                     Image image = null;
                     while ((image = reader.acquireNextImage()) != null){
-                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+//                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+//                        buffer.rewind();
+//                        byte[] bytes = new byte[buffer.capacity()];
+//                        emitter.onNext(bytes);
+//                        image.close();
+
+                        Image.Plane[] planes = image.getPlanes();
+                        ByteBuffer buffer = planes[0].getBuffer();
+                        buffer.rewind();
                         byte[] bytes = new byte[buffer.capacity()];
-                        emitter.onNext(bytes);
+                        buffer.get(bytes);
                         image.close();
 
                         Log.e(LOG_TAG, "bytes " + bytes);
                         Log.e(LOG_TAG, "bytes " + bytes.length);
+                        emitter.onNext(bytes);
                         if(savedPhoto[0] == photoQuantity){
                             emitter.onComplete();
                         } else {

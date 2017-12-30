@@ -1,4 +1,4 @@
-package com.screenmaker.screenmaker;
+package com.screenmaker.screenmaker.utils;
 
 
 import android.Manifest;
@@ -9,6 +9,9 @@ import android.net.Uri;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
+
+import com.screenmaker.screenmaker.App;
+import com.screenmaker.screenmaker.R;
 
 public class PermissionsUtils {
 
