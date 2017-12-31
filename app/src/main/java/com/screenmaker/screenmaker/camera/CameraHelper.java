@@ -2,6 +2,7 @@ package com.screenmaker.screenmaker.camera;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -74,15 +75,13 @@ public class CameraHelper {
             @Override
             public void onOpened(@NonNull CameraDevice camera) {
                 mCameraDevice = camera;
-                Log.i(LOG_TAG, "Open camera  with id:" + mCameraDevice.getId());
                 SurfaceTexture texture = mTextureView.getSurfaceTexture();
                 texture.setDefaultBufferSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
                 Surface surface = new Surface(texture);
 
                 mImageReader = ImageReader.newInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                        ImageFormat.JPEG, 1);
+                        ImageFormat.YUV_420_888, 1);
                 mImageReader.setOnImageAvailableListener(reader -> {
-                    Log.i(LOG_TAG, "creating photo reader " + reader);
                     Image image = null;
                     while ((image = reader.acquireNextImage()) != null){
                         Image.Plane[] planes = image.getPlanes();
@@ -91,9 +90,6 @@ public class CameraHelper {
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
                         image.close();
-
-                        Log.e(LOG_TAG, "bytes " + bytes);
-                        Log.e(LOG_TAG, "bytes " + bytes.length);
                         emitter.onNext(bytes);
                         if(savedPhoto[0] == photoQuantity){
                             emitter.onComplete();
@@ -121,7 +117,7 @@ public class CameraHelper {
                                 mPreviewRequest = mPreviewRequestBuilder.build();
                                 mCameraCaptureSession.setRepeatingRequest(mPreviewRequest,
                                         null, null);
-                                takePicture(10);
+                                takePicture(photoQuantity);
                             } catch (CameraAccessException e) {
                                 emitter.onError(e);
                             }
@@ -142,13 +138,14 @@ public class CameraHelper {
             public void onDisconnected(@NonNull CameraDevice camera) {
                 mCameraDevice.close();
                 mCameraDevice = null;
-                Log.i(LOG_TAG, "disconnect camera with id:" + mCameraDevice.getId());
                 emitter.onComplete();
             }
 
             @Override
             public void onError(@NonNull CameraDevice camera, int error) {
-                emitter.onError(new CameraAccessException(error));
+                mCameraDevice.close();
+                mCameraDevice = null;
+                emitter.onError(new RuntimeException("camera error"));
             }
         }, null), BackpressureStrategy.BUFFER);
     }
@@ -156,6 +153,8 @@ public class CameraHelper {
     public void closeCamera() {
         try {
             if (null != mCameraCaptureSession) {
+                mCameraCaptureSession.stopRepeating();
+                mCameraCaptureSession.abortCaptures();
                 mCameraCaptureSession.close();
                 mCameraCaptureSession = null;
             }
@@ -184,13 +183,6 @@ public class CameraHelper {
         CameraCaptureSession.CaptureCallback CaptureCallback
                 = new CameraCaptureSession.CaptureCallback() {
             @Override
-            public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                           @NonNull CaptureRequest request,
-                                           @NonNull TotalCaptureResult result) {
-                Log.e("myLogs", "onCaptureCompleted");
-            }
-
-            @Override
             public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                 super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 Log.e("myLogs", "onCaptureSequenceCompleted " + photoQuantity);
@@ -198,7 +190,7 @@ public class CameraHelper {
                     try {
                         takePicture(captureBuilder, photoQuantity - 1);
                     } catch (CameraAccessException e) {
-                        return;
+
                     }
                 }
             }

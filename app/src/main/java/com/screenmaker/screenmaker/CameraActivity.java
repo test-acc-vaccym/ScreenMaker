@@ -33,31 +33,31 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
-        initKeys()
+        prepareCapture()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-        .subscribe(new DisposableCompletableObserver() {
-            @Override
-            public void onComplete() {
-                TextureView mTextureView = findViewById(R.id.textureView_camera);
-                mTextureView.setSurfaceTextureListener(CameraActivity.this);
-                cameraHelper = new CameraHelper(CameraActivity.this);
-                try {
-                    cameraHelper.init(CameraCharacteristics.LENS_FACING_FRONT);
-                    cameraHelper.setTextureView(mTextureView);
-                    onSurfaceTextureAvailable(mTextureView.getSurfaceTexture(), mTextureView.getWidth(), mTextureView.getHeight());
-                } catch (CameraAccessException e) {
-                    Toast.makeText(CameraActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                    finishActivityWithRes(RESULT_CANCELED);
-                }
-            }
+                .subscribe(new DisposableCompletableObserver() {
+                    @Override
+                    public void onComplete() {
+                        TextureView mTextureView = findViewById(R.id.textureView_camera);
+                        mTextureView.setSurfaceTextureListener(CameraActivity.this);
+                        cameraHelper = new CameraHelper(CameraActivity.this);
+                        try {
+                            cameraHelper.init(CameraCharacteristics.LENS_FACING_FRONT);
+                            cameraHelper.setTextureView(mTextureView);
+                            onSurfaceTextureAvailable(mTextureView.getSurfaceTexture(), mTextureView.getWidth(), mTextureView.getHeight());
+                        } catch (CameraAccessException e) {
+                            Toast.makeText(CameraActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                            finishActivityWithRes(RESULT_CANCELED);
+                        }
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                Toast.makeText(CameraActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                finishActivityWithRes(RESULT_CANCELED);
-            }
-        });
+                    @Override
+                    public void onError(Throwable e) {
+                        Toast.makeText(CameraActivity.this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        finishActivityWithRes(RESULT_CANCELED);
+                    }
+                });
     }
 
     @Override
@@ -82,7 +82,7 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
                 .subscribe(new DisposableSubscriber<byte[]>() {
                     @Override
                     public void onNext(byte[] bytes) {
-                        Toast.makeText(CameraActivity.this, "Image saved", Toast.LENGTH_LONG).show();
+                        Toast.makeText(CameraActivity.this, "Image saving", Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -98,7 +98,6 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
                     }
                 });
     }
-
 
 
     @Override
@@ -119,13 +118,18 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
 
     }
 
-    private Completable initKeys() {
+    private Completable prepareCapture() {
         return Completable.create(e -> {
+            // clear old images
+            ServiceImageEntry serviceImageEntry = new ServiceImageEntry();
+            serviceImageEntry.clearAll();
+
+            //Initializing keys
             ServiceCryptoInfo serviceCryptoInfo = new ServiceCryptoInfo();
             imageKey = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_KEY_TITLE);
             imageAlias = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_ALIAS_TITLE);
-            if(imageKey == null || imageKey.equals("") ||
-                    imageAlias == null || imageKey.equals("")){
+            if (imageKey == null || imageKey.equals("") ||
+                    imageAlias == null || imageKey.equals("")) {
                 e.onError(new InstantiationException("Failed to instantiate the photo camera"));
             } else {
                 e.onComplete();
@@ -133,7 +137,7 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
         });
     }
 
-    private void finishActivityWithRes(int result){
+    private void finishActivityWithRes(int result) {
         setResult(result);
         finish();
     }
