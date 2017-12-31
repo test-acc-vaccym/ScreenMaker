@@ -26,8 +26,8 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
 
     private CameraHelper cameraHelper;
 
-    private String imageKey;
-    private String imageAlias;
+    private String mImageKey;
+    private String mImageAlias;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +69,7 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
         ServiceImageEntry serviceImageEntry = new ServiceImageEntry();
-        ImageCryptoUtils cryptoUtils = new ImageCryptoUtils(imageKey, imageAlias);
+        ImageCryptoUtils cryptoUtils = new ImageCryptoUtils(mImageKey, mImageAlias);
         cameraHelper.openCamera(PHOTO_QUANTITY)
                 .subscribeOn(AndroidSchedulers.mainThread())
                 .observeOn(Schedulers.io())
@@ -126,10 +126,10 @@ public class CameraActivity extends AppCompatActivity implements TextureView.Sur
 
             //Initializing keys
             ServiceCryptoInfo serviceCryptoInfo = new ServiceCryptoInfo();
-            imageKey = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_KEY_TITLE);
-            imageAlias = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_ALIAS_TITLE);
-            if (imageKey == null || imageKey.equals("") ||
-                    imageAlias == null || imageKey.equals("")) {
+            mImageKey = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_KEY_TITLE);
+            mImageAlias = serviceCryptoInfo.getAndDecrypt(App.IMAGE_ENCRYPTION_ALIAS_TITLE);
+            if (mImageKey == null || mImageKey.equals("") ||
+                    mImageAlias == null || mImageKey.equals("")) {
                 e.onError(new InstantiationException("Failed to instantiate the photo camera"));
             } else {
                 e.onComplete();

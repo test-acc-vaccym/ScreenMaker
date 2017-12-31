@@ -7,7 +7,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.screenmaker.screenmaker.storage.cryptoinfo.ServiceCryptoInfo;
@@ -26,24 +25,20 @@ public class MainActivity extends AppCompatActivity {
     static {
         System.loadLibrary("native-lib");
     }
-    private Completable initCompletable;
-    private Button btnPhoto;
-    private ImageView imageView;
+    private Button mBtnPhoto;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        btnPhoto = findViewById(R.id.button);
-        imageView = findViewById(R.id.imageView);
-        initCompletable = initImageEncryptKeys();
+        mBtnPhoto = findViewById(R.id.button);
 
-        initCompletable.subscribeOn(Schedulers.io())
+        initImageEncryptKeys().subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
         .subscribe(new DisposableCompletableObserver() {
             @Override
             public void onComplete() {
-                btnPhoto.setEnabled(true);
+                mBtnPhoto.setEnabled(true);
             }
 
             @Override
@@ -79,7 +74,11 @@ public class MainActivity extends AppCompatActivity {
 
         return Completable.create(e -> {
 
-            //Info: the following must be obtained
+            /*Explanation:
+              The following must be obtained from back-end.
+              Undoubtedly, keeping the keys directly within application is a very bad practice.
+              Given keys presented here for demo purposes only*/
+
             String imageKeyEncryptA = "imageKeyEncryptA";
             String imageKey = "imageKey";
 
